@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Smooth scrolling fallback + offset for sticky navbar so section titles
+   aren't hidden behind the header when scrolled into view. */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
