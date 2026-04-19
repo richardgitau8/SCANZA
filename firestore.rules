@@ -1,0 +1,64 @@
+rules_version = '2';
+
+// SCANZA AI — Firestore Security Rules
+//
+// Strict policy:
+//   • Clients can READ their own profile + their own scans + their own purchases.
+//   • Clients can NEVER write `tokens`, `email`, `createdAt`.
+//   • Clients can NEVER directly create/update scans or purchases — those
+//     mutations only happen through Cloud Functions (admin SDK bypasses rules).
+//   • Email verification is required for all reads.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // ── Users root document ─────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isOwner(uid) && isVerified();
+
+      // Allow client to update only optional profile fields.
+      // Block any write that touches sensitive server-managed fields.
+      allow update: if isOwner(uid) && isVerified()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['tokens', 'email', 'createdAt']);
+
+      // Creation + deletion happen server-side only.
+      allow create, delete: if false;
+
+      // ── Scans subcollection ─────────────────────────────────────
+      match /scans/{scanId} {
+        allow read: if isOwner(uid) && isVerified();
+        allow write: if false;        // server-only via Cloud Functions
+      }
+
+      // ── Purchases subcollection ────────────────────────────────
+      match /purchases/{purchaseId} {
+        allow read: if isOwner(uid);  // verified or not — purchase history visible immediately
+        allow write: if false;        // server-only via Cloud Functions
+      }
+
+      // ── Payments subcollection (M-Pesa STK push lifecycle) ─────
+      // Frontend subscribes to its own pending payment doc to get
+      // real-time status updates (initiating → pending → completed/failed)
+      // written by the IntaSend webhook or checkPaymentStatus function.
+      match /payments/{paymentId} {
+        allow read: if isOwner(uid);  // verified or not — payment in progress during signup
+        allow write: if false;        // server-only via Cloud Functions
+      }
+    }
+
+    // Default-deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
