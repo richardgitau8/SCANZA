@@ -1,2 +1,14 @@
-# SCANZA
-Scanza is a smart document-checking platform that scans your work for AI-generated content and plagiarism, then delivers fast, clear reports.
+Scanza
+
+Scanza is a web platform that allows users to upload documents and receive AI detection and plagiarism reports.
+
+🚧 Status
+
+This project is currently in development.
+
+✅ Frontend: Complete
+⚠️ Backend: In progress (not fully functional)
+✨ Features
+Upload documents (PDF, DOCX, TXT)
+Clean and modern user interface
+AI detection & plagiarism report (backend pending)
